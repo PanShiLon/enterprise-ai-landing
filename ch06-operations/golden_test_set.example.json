@@ -1,0 +1,14 @@
+[
+  {
+    "query": "格位利用率怎么计算？",
+    "expected_keywords": ["格位利用率", "实际销售额", "格子容量"]
+  },
+  {
+    "query": "投柜流程是什么？",
+    "expected_keywords": ["确认点位", "物业", "设备上线"]
+  },
+  {
+    "query": "分块大小选多少合适？",
+    "expected_keywords": ["512", "token", "滑动重叠"]
+  }
+]

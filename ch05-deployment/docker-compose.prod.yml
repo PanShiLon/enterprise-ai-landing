@@ -1,0 +1,85 @@
+# 生产环境 docker-compose（第五章配套）
+# 使用方式：
+#   cp .env.example .env && vim .env
+#   docker compose -f docker-compose.prod.yml up -d
+
+version: "3.8"
+
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd_data:/etcd
+    command: >
+      etcd
+      --advertise-client-urls=http://127.0.0.1:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir=/etcd
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2023-03-13T19-46-17Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  milvus-standalone:
+    image: milvusdb/milvus:v2.3.4
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "127.0.0.1:19530:19530"   # 只监听本机，不暴露外网
+      - "127.0.0.1:9091:9091"     # 健康检查
+    depends_on:
+      - etcd
+      - minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+    restart: unless-stopped
+
+  knowledge-service:
+    build:
+      context: ../ch04-two-stage-retrieval
+      dockerfile: ../ch05-deployment/Dockerfile
+    ports:
+      - "127.0.0.1:8000:8000"     # 只监听本机，Nginx 转发
+    volumes:
+      - /opt/bge-models:/data/bge-models:ro        # 模型只读挂载
+      - /opt/bge-reranker:/data/bge-reranker:ro
+      - /opt/company-wiki:/data/wiki:ro
+    environment:
+      - BGE_MODEL_PATH=/data/bge-models/bge-large-zh-v1.5
+      - RERANKER_MODEL_PATH=/data/bge-reranker/bge-reranker-large
+      - WIKI_PATH=/data/wiki
+      - MILVUS_HOST=milvus-standalone
+      - MILVUS_PORT=19530
+    depends_on:
+      milvus-standalone:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  etcd_data:
+  minio_data:
+  milvus_data:
