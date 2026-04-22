@@ -22,7 +22,7 @@ docker compose up -d
 
 | 章节 | 内容 | 路径 |
 |------|------|------|
-| 第1章 | 认知篇：为什么 RAG 准确率卡在 70% | `ch01-cognition/` |
+| 第1章 | 认知篇：Java程序员的AI焦虑与破局路线图 | `ch01-cognition/` |
 | 第2章 | 架构篇：Wiki+Vector 双层架构设计 | `ch02-architecture/` |
 | 第3章 | 数据篇：从混乱文档到结构化 Wiki | `ch03-data-pipeline/` |
 | 第4章 | 检索篇：两阶段检索从原理到代码 | `ch04-two-stage-retrieval/` |
